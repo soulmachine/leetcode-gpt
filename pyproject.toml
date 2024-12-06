@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "leetcode-gpt"
+version = "0.1.0"
+description = ""
+authors = ["soulmachine <soulmachine@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12.8"
+python-leetcode = "1.2.1"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+leetcode = "leetcode_gpt.main:main"
