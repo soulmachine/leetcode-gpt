@@ -1,10 +1,20 @@
 import requests
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util import Retry
 
 
 class LeetCode:
     def __init__(self, csrf_token: str, session_id: str):
+        """
+        Initialize LeetCode API client with authentication.
+
+        Args:
+            csrf_token (str): CSRF token for authentication
+            session_id (str): Session ID for authentication
+        """
+        if not csrf_token or not session_id:
+            raise ValueError("Both csrf_token and session_id must be provided")
+
         self.base_url = "https://leetcode.com"
         self.session = requests.Session()
 
