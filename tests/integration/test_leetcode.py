@@ -37,8 +37,7 @@ def twoSum(self, nums: List[int], target: int) -> List[int]:
         result = leetcode_client.submit(problem_slug, code)
         print(f"Submission result: {result}")
         
-        # Updated assertions for GraphQL response
+        # Updated assertions based on the actual response structure
         assert result is not None
-        assert "data" in result
-        assert "submitCode" in result["data"]
-        assert "id" in result["data"]["submitCode"]
+        assert "submission_id" in result
+        assert isinstance(result["submission_id"], int)

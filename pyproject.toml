@@ -19,3 +19,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 leetcode = "leetcode_gpt.main:main"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: mark test as integration test",
+]
