@@ -1,5 +1,5 @@
 import os
-import sys
+import logging
 import argparse
 from typing import List
 from leetcode_gpt.claude import translate_java_to_other_language
@@ -24,6 +24,9 @@ def add_code_to_file(file_path: str, target_language: str) -> None:
     """Add translated code to markdown file for each Java code block."""
     with open(file_path, 'r', encoding='utf-8') as file:
         sections = file.read().split('<Tabs')
+    if len(sections) < 2:
+        logging.warning(f"No Tabs found in {file_path}")
+        return
 
     problem_slug = Path(file_path).stem
     modified = False
@@ -62,6 +65,17 @@ def add_code_to_file(file_path: str, target_language: str) -> None:
         modified = True
         sections[1] = sections[1].replace(f'defaultValue="java"', 'defaultValue="python"')
         sections[1] = sections[1].replace(f'defaultValue="cpp"', 'defaultValue="python"')
+        if "value: 'python'" not in sections[1]:
+            values_start = sections[1].find('values={[')
+            values_end = sections[1].find(']', values_start)
+            if values_start != -1 and values_end != -1:
+                values_content = sections[1][values_start:values_end]
+                if "value: 'python'" not in values_content:
+                    new_values = values_content.replace(
+                        'values={[',
+                        'values={[\n{ label: \'Python\', value: \'python\', },\n'
+                    )
+                    sections[1] = sections[1][:values_start] + new_values + sections[1][values_end:]
 
     if modified:
         with open(file_path, 'w', encoding='utf-8') as file:
