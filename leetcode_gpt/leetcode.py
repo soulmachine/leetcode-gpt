@@ -1,7 +1,8 @@
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
-
+import time
+import logging
 
 class LeetCode:
     def __init__(self, csrf_token: str, session_id: str):
@@ -77,14 +78,57 @@ class LeetCode:
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to get question ID: {str(e)}")
 
-    def submit(self, problem_slug: str, code: str, language: str = "python3") -> dict:
-        """Submit a solution to a LeetCode problem."""
+    def submit(self, problem_slug: str, code: str, language: str = "python3") -> str:
+        """Submit a solution to a LeetCode problem and return the submission ID."""
         question_id = self._get_question_id(problem_slug)
         endpoint = f"{self.base_url}/problems/{problem_slug}/submit/"
         payload = {"question_id": question_id, "lang": language, "typed_code": code}
         try:
             response = self.session.post(endpoint, json=payload, headers=self.headers)
             response.raise_for_status()
-            return response.json()
+            return response.json()["submission_id"]
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to submit solution: {str(e)}")
+
+    def check_submission(self, submission_id: int, max_retries: int = 10, retry_delay: float = 2.0) -> dict:
+        """Check the status of a submitted solution.
+
+        Args:
+            submission_id: The submission ID to check
+            max_retries: Maximum number of retries for pending submissions
+            retry_delay: Delay between retries in seconds
+
+        Returns:
+            dict: Submission result containing status, runtime, memory usage, etc.
+
+        Raises:
+            TimeoutError: If submission takes too long to process
+            Exception: If submission check fails
+        """
+        endpoint = f"{self.base_url}/submissions/detail/{submission_id}/check/"
+        retries = 0
+
+        while retries < max_retries:
+            try:
+                response = self.session.get(endpoint, headers=self.headers)
+                response.raise_for_status()
+
+                result = response.json()
+                status = result.get('state')
+
+                if status in ['SUCCESS', 'FAILED']:
+                    return result
+
+                if status in ['PENDING', 'STARTED']:
+                    retries += 1
+                    time.sleep(retry_delay)
+                    continue
+
+                raise Exception(f"Unknown submission status: {status}")
+
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request failed: {str(e)}")
+                retries += 1
+                time.sleep(retry_delay)
+
+        raise TimeoutError(f"Submission check timed out after {max_retries} retries")

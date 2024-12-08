@@ -19,25 +19,24 @@ class TestLeetCodeIntegration:
         """Test submitting a real solution to LeetCode"""
         problem_slug = "two-sum"
         code = """
-def twoSum(self, nums: List[int], target: int) -> List[int]:
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []
+class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+        indices = {}
+        for i, num in enumerate(nums):
+            rest = target - num
+            if rest in indices:
+                return [indices[rest], i]
+            indices[num] = i
         """
-        
+
         # Get question ID first (for debugging)
         question_id = leetcode_client._get_question_id(problem_slug)
         print(f"Question ID: {question_id}")
-        
+
         # Submit solution
         result = leetcode_client.submit(problem_slug, code)
         print(f"Submission result: {result}")
-        
+
         # Updated assertions based on the actual response structure
         assert result is not None
-        assert "submission_id" in result
-        assert isinstance(result["submission_id"], int)
+        assert isinstance(result, int)
