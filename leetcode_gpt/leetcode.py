@@ -1,3 +1,4 @@
+from typing import Optional
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -54,7 +55,7 @@ class LeetCode:
             raise ValueError("Invalid csrf_token or session_id") from e
 
 
-    def _get_question_id(self, problem_slug: str) -> int:
+    def get_question_id(self, problem_slug: str) -> Optional[int]:
         """Retrieve the question ID from the problem slug using GraphQL."""
         endpoint = f"{self.base_url}/graphql"
         query = {
@@ -67,20 +68,18 @@ class LeetCode:
             """,
             "variables": {"titleSlug": problem_slug},
         }
-        try:
-            response = self.session.post(endpoint, json=query, headers=self.headers)
-            response.raise_for_status()
-            data = response.json()
-            question_id = data.get("data", {}).get("question", {}).get("questionId")
-            if not question_id:
-                raise ValueError(f"Invalid problem slug '{problem_slug}'.")
-            return int(question_id)
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Failed to get question ID: {str(e)}")
+        response = self.session.post(endpoint, json=query, headers=self.headers)
+        response.raise_for_status()
+        data = response.json()
+        question_id = data.get("data", {}).get("question", {}).get("questionId", None)
+        return int(question_id) if question_id else None
 
     def submit(self, problem_slug: str, code: str, language: str = "python3") -> str:
         """Submit a solution to a LeetCode problem and return the submission ID."""
-        question_id = self._get_question_id(problem_slug)
+        question_id = self.get_question_id(problem_slug)
+        if not question_id:
+            raise ValueError(f"Invalid problem slug '{problem_slug}'.")
+
         endpoint = f"{self.base_url}/problems/{problem_slug}/submit/"
         payload = {"question_id": question_id, "lang": language, "typed_code": code}
         try:
