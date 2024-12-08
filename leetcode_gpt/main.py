@@ -50,19 +50,28 @@ def add_code_to_file(file_path: str, target_language: str) -> None:
         try:
             java_code = tab_content.split('```java')[1].split('```')[0].strip()
             translated_code = translate_java_to_other_language(java_code, target_language)
-            validate_translated_code(translated_code, target_language, problem_slug)
 
-            # Add new tab at the end of tab_content
-            new_tab = f'\n<TabItem value="{target_language}">\n\n```{target_language}\n{translated_code}\n```\n\n</TabItem>\n'
-            sections[i] = f'<Tabs{tab_content}{new_tab}</Tabs>{remainder}'
-            modified = True
+            # Retry generation up to 3 times
+            validated = False
+            for _ in range(3):
+                if validate_translated_code(translated_code, target_language, problem_slug):
+                    validated = True
+                    break
+                translated_code = translate_java_to_other_language(java_code, target_language)
+
+            if validated:
+                # Add new tab at the end of tab_content
+                new_tab = f'\n<TabItem value="{target_language}">\n\n```{target_language}\n{translated_code}\n```\n\n</TabItem>\n'
+                sections[i] = f'<Tabs{tab_content}{new_tab}</Tabs>{remainder}'
+                modified = True
+            else:
+                sections[i] = f'<Tabs{section}' # Keep the original section
         except Exception as e:
-            print(f"Error processing Tabs section {i}: {str(e)}")
+            logging.error(f"Error processing Tabs section {i}: {str(e)}")
             continue
 
     # check if defaultValue="python"
-    if target_language == "python" and 'defaultValue="python"' not in sections[1]:
-        modified = True
+    if modified and target_language == "python" and 'defaultValue="python"' not in sections[1]:
         sections[1] = sections[1].replace(f'defaultValue="java"', 'defaultValue="python"')
         sections[1] = sections[1].replace(f'defaultValue="cpp"', 'defaultValue="python"')
         if "value: 'python'" not in sections[1]:
@@ -86,10 +95,10 @@ def process_directory(directory: str, target_language: str) -> None:
     pattern = str(Path(directory) / "**" / "*.md")
     for file_path in glob.glob(pattern, recursive=True):
         try:
-            print(f"Processing {file_path}")
+            logging.info(f"Processing {file_path}")
             add_code_to_file(file_path, target_language)
         except Exception as e:
-            print(f"Error processing {file_path}: {str(e)}")
+            logging.error(f"Error processing {file_path}: {str(e)}")
 
 def validate_translated_code(translated_code: str, language: str, problem_slug: str = None) -> bool:
     """Validate translated code by submitting it to LeetCode.
@@ -118,15 +127,15 @@ def validate_translated_code(translated_code: str, language: str, problem_slug: 
 
         # Check submission status
         if response.get('state') == 'SUCCESS':
-            print(f"✅ Code validation passed")
+            logging.info(f"✅ Code validation passed")
             return True
         else:
             error_msg = response.get('error_msg', 'Unknown error')
-            print(f"❌ Code validation failed: {error_msg}")
+            logging.warning(f"❌ Code validation failed: {error_msg}")
             return False
 
     except Exception as e:
-        print(f"❌ Validation error: {str(e)}")
+        logging.warning(f"❌ Validation error: {str(e)}")
         return False
 
 if __name__ == "__main__":
