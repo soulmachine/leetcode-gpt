@@ -18,6 +18,12 @@ missing_vars = [var for var in required_env_vars if not os.getenv(var)]
 if missing_vars:
     raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
+leetcode_client = LeetCode(
+    csrf_token=os.getenv("LEETCODE_CSRF_TOKEN"),
+    session_id=os.getenv("LEETCODE_SESSION_ID")
+)
+
+
 def add_code_to_file(file_path: str, target_language: str) -> None:
     target_language = target_language.lower()
 
@@ -29,6 +35,12 @@ def add_code_to_file(file_path: str, target_language: str) -> None:
         return
 
     problem_slug = Path(file_path).stem
+    if problem_slug.lower() == "readme":
+        return
+    if leetcode_client.get_question_id(problem_slug) is None:
+        logging.error(f"Invalid problem slug '{problem_slug}', unable to get its question ID")
+        return
+
     modified = False
     for i, section in enumerate(sections[1:], 1):  # Skip content before first Tabs
         # Skip if no proper Tabs structure
@@ -104,7 +116,6 @@ def validate_translated_code(translated_code: str, language: str, problem_slug: 
     """Validate translated code by submitting it to LeetCode.
 
     Args:
-        leetcode_client: LeetCode client
         translated_code: The code to validate
         language: Programming language of the code
         problem_slug: LeetCode problem slug (e.g., 'two-sum')
@@ -116,26 +127,21 @@ def validate_translated_code(translated_code: str, language: str, problem_slug: 
         if language == "python":
             language = "python3"
 
-        leetcode_client = LeetCode(
-            csrf_token=os.getenv("LEETCODE_CSRF_TOKEN"),
-            session_id=os.getenv("LEETCODE_SESSION_ID")
-        )
-
         # Submit code to LeetCode
         submission_id = leetcode_client.submit(problem_slug, translated_code, language)
         response = leetcode_client.check_submission(submission_id)
 
         # Check submission status
         if response.get('state') == 'SUCCESS':
-            logging.info(f"✅ Code validation passed")
+            logging.info(f"✅ Code validation passed on problem {problem_slug}")
             return True
         else:
             error_msg = response.get('error_msg', 'Unknown error')
-            logging.warning(f"❌ Code validation failed: {error_msg}")
+            logging.warning(f"❌ Code validation failed on problem {problem_slug}: {error_msg}")
             return False
 
     except Exception as e:
-        logging.warning(f"❌ Validation error: {str(e)}")
+        logging.warning(f"❌ Validation error on problem {problem_slug}: {str(e)}")
         return False
 
 if __name__ == "__main__":

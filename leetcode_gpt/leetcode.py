@@ -5,6 +5,12 @@ from urllib3.util import Retry
 import time
 import logging
 
+
+# Some leetcode problem slugs are not good names, need to map to more readable ones
+PROBLEM_SLUG_MAPPING = {
+    "merge-two-sorted-arrays": "merge-sorted-array",
+}
+
 class LeetCode:
     def __init__(self, csrf_token: str, session_id: str):
         """
@@ -57,6 +63,7 @@ class LeetCode:
 
     def get_question_id(self, problem_slug: str) -> Optional[int]:
         """Retrieve the question ID from the problem slug using GraphQL."""
+        problem_slug = PROBLEM_SLUG_MAPPING.get(problem_slug, problem_slug)
         endpoint = f"{self.base_url}/graphql"
         query = {
             "query": """
@@ -71,11 +78,15 @@ class LeetCode:
         response = self.session.post(endpoint, json=query, headers=self.headers)
         response.raise_for_status()
         data = response.json()
-        question_id = data.get("data", {}).get("question", {}).get("questionId", None)
+        tmp = data.get("data", {}).get("question")
+        if not tmp: # data can be: {'data': {'question': None}}
+            return None
+        question_id = tmp.get("questionId")
         return int(question_id) if question_id else None
 
     def submit(self, problem_slug: str, code: str, language: str = "python3") -> str:
         """Submit a solution to a LeetCode problem and return the submission ID."""
+        problem_slug = PROBLEM_SLUG_MAPPING.get(problem_slug, problem_slug)
         question_id = self.get_question_id(problem_slug)
         if not question_id:
             raise ValueError(f"Invalid problem slug '{problem_slug}'.")
