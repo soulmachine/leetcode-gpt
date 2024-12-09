@@ -94,7 +94,7 @@ def add_code_to_file(file_path: str, target_language: str) -> None:
                 if "value: 'python'" not in values_content:
                     new_values = values_content.replace(
                         'values={[',
-                        'values={[\n{ label: \'Python\', value: \'python\', },\n'
+                        'values={[\n{ label: \'Python\', value: \'python\', },'
                     )
                     sections[1] = sections[1][:values_start] + new_values + sections[1][values_end:]
 

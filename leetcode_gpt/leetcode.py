@@ -9,6 +9,10 @@ import logging
 # Some leetcode problem slugs are not good names, need to map to more readable ones
 PROBLEM_SLUG_MAPPING = {
     "merge-two-sorted-arrays": "merge-sorted-array",
+    "sqrt": "sqrtx",
+    "pow": "powx-n",
+    "atoi": "string-to-integer-atoi",
+    "strstr": "find-the-index-of-the-first-occurrence-in-a-string",
 }
 
 class LeetCode:
